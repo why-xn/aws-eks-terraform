@@ -34,7 +34,7 @@ resource "aws_iam_role_policy_attachment" "nodes-AmazonEC2ContainerRegistryReadO
 
 ### DEFINE NODE GROUP ###
 resource "aws_eks_node_group" "node-group-1" {
-  cluster_name    = var.cluster_name
+  cluster_name    = aws_eks_cluster.eks.name
   node_group_name = "${var.cluster_name}-ng-private-1"
   node_role_arn   = aws_iam_role.nodes.arn
 
