@@ -1,5 +1,6 @@
-resource "aws_iam_role" "whyxn-eks" {
-  name = "eks-cluster-whyxn"
+### DEFINE ROLE FOR EKS ###
+resource "aws_iam_role" "eks" {
+  name = "role-${var.cluster_name}"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -13,26 +14,31 @@ resource "aws_iam_role" "whyxn-eks" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "whyxn-eks-AmazonEKSClusterPolicy" {
+
+### ATTACH POLICY TO ROLE ###
+resource "aws_iam_role_policy_attachment" "eks-AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.whyxn-eks.name
+  role       = aws_iam_role.eks.name
 }
 
-resource "aws_eks_cluster" "whyxn-eks" {
-  name      = "whyxn-eks"
-  role_arn  = aws_iam_role.whyxn-eks.arn
-  version   = "1.22"
+
+### DEFINE EKS CLUSTER CONFIG ###
+resource "aws_eks_cluster" "eks" {
+  name      = var.cluster_name
+  role_arn  = aws_iam_role.eks.arn
+  version   = var.k8s_version
 
   vpc_config {
-    endpoint_private_access = false
-    endpoint_public_access  = true
+    endpoint_private_access = var.cluster_endpoint_is_private
+    endpoint_public_access  = var.cluster_endpoint_is_public
+    
     subnet_ids = [
-      aws_subnet.private-ap-southeast-1a.id,
-      aws_subnet.private-ap-southeast-1b.id,
-      aws_subnet.public-ap-southeast-1a.id,
-      aws_subnet.public-ap-southeast-1b.id
+      aws_subnet.private-a.id,
+      aws_subnet.private-b.id,
+      aws_subnet.public-a.id,
+      aws_subnet.public-b.id
     ]
   }
 
-  depends_on = [aws_iam_role_policy_attachment.whyxn-eks-AmazonEKSClusterPolicy]
+  depends_on = [aws_iam_role_policy_attachment.eks-AmazonEKSClusterPolicy]
 }

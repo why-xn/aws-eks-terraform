@@ -1,5 +1,6 @@
-resource "aws_iam_role" "whyxn-eks-nodes" {
-  name = "eks-node-group-whyxn"
+### DEFINE ROLE FOR NODE GROUP ###
+resource "aws_iam_role" "nodes" {
+  name = "role-${var.cluster_name}-nodes"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -13,38 +14,42 @@ resource "aws_iam_role" "whyxn-eks-nodes" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "whyxn-eks-nodes-AmazonEKSWorkerNodePolicy" {
+
+### ATTACH POLICIES TO THE ROLE ###
+resource "aws_iam_role_policy_attachment" "nodes-AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.whyxn-eks-nodes.name
+  role       = aws_iam_role.nodes.name
 }
 
-resource "aws_iam_role_policy_attachment" "whyxn-eks-nodes-AmazonEKS_CNI_Policy" {
+resource "aws_iam_role_policy_attachment" "nodes-AmazonEKS_CNI_Policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.whyxn-eks-nodes.name
+  role       = aws_iam_role.nodes.name
 }
 
-resource "aws_iam_role_policy_attachment" "whyxn-eks-nodes-AmazonEC2ContainerRegistryReadOnly" {
+resource "aws_iam_role_policy_attachment" "nodes-AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.whyxn-eks-nodes.name
+  role       = aws_iam_role.nodes.name
 }
 
-resource "aws_eks_node_group" "private-whyxn-eks-nodes-01" {
-  cluster_name    = aws_eks_cluster.whyxn-eks.name
-  node_group_name = "private-whyxn-eks-nodes-01"
-  node_role_arn   = aws_iam_role.whyxn-eks-nodes.arn
+
+### DEFINE NODE GROUP ###
+resource "aws_eks_node_group" "node-group-1" {
+  cluster_name    = var.cluster_name
+  node_group_name = "${var.cluster_name}-ng-private-1"
+  node_role_arn   = aws_iam_role.nodes.arn
 
   subnet_ids = [
-    aws_subnet.private-ap-southeast-1a.id,
-    aws_subnet.private-ap-southeast-1b.id
+    aws_subnet.private-a.id,
+    aws_subnet.private-b.id
   ]
 
-  capacity_type  = "ON_DEMAND"
-  instance_types = ["t3.small"]
+  capacity_type  = var.node_capacity_type
+  instance_types = ["${var.node_instance_type}"]
 
   scaling_config {
-    desired_size = 1
-    max_size     = 2
-    min_size     = 0
+    desired_size = var.node_desired_size
+    max_size     = var.node_max_size
+    min_size     = var.node_min_size
   }
 
   update_config {
@@ -52,12 +57,12 @@ resource "aws_eks_node_group" "private-whyxn-eks-nodes-01" {
   }
 
   labels = {
-    role = "common"
+    "${var.node_label_key}" = "${var.node_label_value}"
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.whyxn-eks-nodes-AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.whyxn-eks-nodes-AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.whyxn-eks-nodes-AmazonEC2ContainerRegistryReadOnly,
+    aws_iam_role_policy_attachment.nodes-AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.nodes-AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.nodes-AmazonEC2ContainerRegistryReadOnly,
   ]
 }
